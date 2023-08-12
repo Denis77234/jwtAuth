@@ -1,17 +1,12 @@
 package main
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log"
+	"medosTest/pkg/jwt"
 	"net/http"
+	"time"
 )
-
-type header struct {
-	alg string
-	typ string
-}
 
 func getToken(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -34,25 +29,32 @@ func getToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwt := makeHeader()
+	jwtGen, err := jwt.NewGenerator("HS512", "topSecret")
+	if err != nil {
+		w.WriteHeader(500)
+		_, err := w.Write([]byte("Something went wrong"))
+		log.Println(err)
+		return
+	}
 
-	_, err := fmt.Fprintf(w, "header is %v", jwt)
+	payload := jwt.Payload{}
+	payload.Sub = id
+	payload.Iss = "medodsTest"
+	payload.Iat = time.Now().Unix()
+
+	jwToken := jwtGen.Generate(payload)
+
+	_, err = fmt.Fprintf(w, "%v\n", jwToken)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func makeHeader() string {
-	hdr := header{alg: "sha512", typ: "jwt"}
-
-	bytes, err := json.Marshal(hdr)
-	if err != nil {
-		log.Println(err)
-	}
-	b64Hdr := base64.StdEncoding.EncodeToString(bytes)
-
-	return b64Hdr
-}
+//func validJWT(jwt string) bool {
+//	parse := strings.Split(jwt, ".")
+//	check := makeSignature(parse[0], parse[1])
+//	return check == parse[2]
+//}
 
 func main() {
 	mux := http.NewServeMux()
