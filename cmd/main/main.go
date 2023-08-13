@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"log"
+	"medosTest/internal/pkg/dal"
 	"medosTest/internal/pkg/refresh"
 	"medosTest/pkg/jwt"
 	"net/http"
@@ -48,6 +50,17 @@ func getToken(w http.ResponseWriter, r *http.Request) {
 
 	val := refHan.Validate(refreshToken, jwToken)
 
+	mongoDB, err := dal.New("mongodb://localhost:27017")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ref, err := mongoDB.FindRefresh(context.TODO(), id)
+	if err != nil {
+		log.Println(err)
+	}
+
+	fmt.Println(ref)
 	_, err = fmt.Fprintf(w, "ACCESS: %v\n REFRESH: %v\n VAL:%v", jwToken, refreshToken, val)
 	if err != nil {
 		log.Println(err)
@@ -69,4 +82,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(1)
 }
