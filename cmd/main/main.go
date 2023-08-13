@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"log"
+	"medosTest/internal/pkg/refresh"
 	"medosTest/pkg/jwt"
 	"net/http"
 	"time"
@@ -37,14 +39,16 @@ func getToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload := jwt.Payload{}
-	payload.Sub = id
-	payload.Iss = "medodsTest"
-	payload.Iat = time.Now().Unix()
-
+	payload := jwt.Payload{Sub: id, Iss: "medodsTest", Iat: time.Now().Unix()}
 	jwToken := jwtGen.Generate(payload)
 
-	_, err = fmt.Fprintf(w, "%v\n", jwToken)
+	refHan := refresh.NewHandler(sha256.New, "refreshKey")
+
+	refreshToken := refHan.Generate(jwToken)
+
+	val := refHan.Validate(refreshToken, jwToken)
+
+	_, err = fmt.Fprintf(w, "ACCESS: %v\n REFRESH: %v\n VAL:%v", jwToken, refreshToken, val)
 	if err != nil {
 		log.Println(err)
 	}

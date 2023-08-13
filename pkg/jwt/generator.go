@@ -30,9 +30,9 @@ func NewGenerator(algorithm string, key string) (Generator, error) {
 	return jg, nil
 }
 
-func (j *Generator) makeSignature(h string, p string) string {
+func (g *Generator) makeSignature(h string, p string) string {
 
-	hashFunc := hmac.New(j.alg, []byte(j.key))
+	hashFunc := hmac.New(g.alg, []byte(g.key))
 
 	str := fmt.Sprintf("%v.%v", h, p)
 
@@ -44,15 +44,15 @@ func (j *Generator) makeSignature(h string, p string) string {
 
 }
 
-func (j Generator) Generate(p Payload) string {
+func (g Generator) Generate(p Payload) string {
 
-	h := header{Alg: j.algorithm, Typ: "jwt"}
+	h := header{Alg: g.algorithm, Typ: "jwt"}
 
 	hdr := h.base64()
 
 	payload := p.base64()
 
-	sign := j.makeSignature(hdr, payload)
+	sign := g.makeSignature(hdr, payload)
 
 	jwt := fmt.Sprintf("%v.%v.%v", hdr, payload, sign)
 

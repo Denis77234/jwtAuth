@@ -7,7 +7,7 @@ import (
 )
 
 type header struct {
-	Alg string `json:"alg"` //value will be set automatically
+	Alg string `json:"alg"`
 	Typ string `json:"typ"`
 }
 
