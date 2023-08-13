@@ -42,18 +42,18 @@ func (m *Mongo) AddRefresh(ctx context.Context, refresh, GUID string) error {
 	return nil
 }
 
-func (m Mongo) FindRefresh(ctx context.Context, guid string) (token, error) {
+func (m *Mongo) FindRefresh(ctx context.Context, guid string) (Token, error) {
 	coll := m.Client.Database("tokens").Collection("refresh")
 
-	var refresh token
+	var refresh Token
 
 	tokenEncode := coll.FindOne(ctx, bson.D{{"guid", guid}})
 	if tokenEncode.Err() != nil {
-		return token{}, nil
+		return Token{}, nil
 	}
 	err := tokenEncode.Decode(&refresh)
 	if err != nil {
-		return token{}, nil
+		return Token{}, nil
 	}
 	return refresh, nil
 }
