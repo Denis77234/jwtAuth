@@ -2,7 +2,6 @@ package jwt
 
 import (
 	"crypto/hmac"
-	"encoding/json"
 	"errors"
 	"hash"
 	"strings"
@@ -58,46 +57,4 @@ func (g Generator) Generate(p Payload) string {
 	jwt := fmt.Sprintf("%v.%v.%v", hdr, payload, sign)
 
 	return jwt
-}
-
-func (g Generator) parse(jwt string) (header, payload, signature string) {
-	slice := strings.Split(jwt, ".")
-	header = slice[0]
-	payload = slice[1]
-	signature = slice[2]
-	return header, payload, signature
-}
-
-func (g Generator) Signature(jwt string) (signature string) {
-	_, _, signature = g.parse(jwt)
-	return signature
-}
-
-func (g Generator) ParseToStruct(jwt string) (head header, payload Payload, err error) {
-	headStr, payloadStr, _ := g.parse(jwt)
-
-	byteH, err := base64.RawURLEncoding.DecodeString(headStr)
-	if err != nil {
-		return head, payload, err
-	}
-
-	byteP, err := base64.RawURLEncoding.DecodeString(payloadStr)
-	if err != nil {
-		return head, payload, err
-	}
-
-	err = json.Unmarshal(byteH, &head)
-	if err != nil {
-		return head, payload, err
-	}
-	err = json.Unmarshal(byteP, &payload)
-	if err != nil {
-		return head, payload, err
-	}
-
-	return head, payload, nil
-}
-
-func (g Generator) validateAlg(head header) bool {
-	return g.algorithm == head.Alg
 }

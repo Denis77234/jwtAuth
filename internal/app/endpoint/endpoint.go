@@ -3,7 +3,6 @@ package endpoint
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	bcrypt2 "golang.org/x/crypto/bcrypt"
 	"log"
@@ -27,14 +26,14 @@ type Endpoint struct {
 	refH refresh.Handler
 }
 
-func New(db refreshDB, jwtG jwt.Generator, refH refresh.Handler) Endpoint {
-	e := Endpoint{jwtG: jwtG, db: db, refH: refH}
+func New(db refreshDB, jwtG jwt.Generator, refH refresh.Handler) *Endpoint {
+	e := &Endpoint{jwtG: jwtG, db: db, refH: refH}
 	return e
 }
 
 func (e *Endpoint) GetTokens(w http.ResponseWriter, r *http.Request) {
-	accC, refC, _ := e.tokensFromCookie(r)
-	if accC != "" || refC != "" {
+	accFromCookie, refFromCookie, _ := e.tokensFromCookie(r)
+	if accFromCookie != "" || refFromCookie != "" {
 		http.Error(w, "tokens already set", http.StatusBadRequest)
 		return
 	}
@@ -53,66 +52,35 @@ func (e *Endpoint) GetTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accExpirationTime := time.Now().Add(time.Hour * accExp)
-	refExpirationTime := time.Now().Add(time.Hour * refreshExp)
+	e.setTokens(GUID.GUID, "add", w)
 
-	acc, ref := e.tokens(GUID.GUID, accExpirationTime)
-
-	bcrypt, err := bcrypt2.GenerateFromPassword([]byte(ref), 5)
-	if err != nil {
-		log.Println(err)
-	}
-
-	refToken := models.NewToken(GUID.GUID, bcrypt, refExpirationTime.Unix())
-
-	err = e.db.Add(context.TODO(), refToken)
-	if err != nil {
-		log.Println(err)
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "Access",
-		Value:    acc,
-		Expires:  refExpirationTime,
-		HttpOnly: true,
-		Path:     "/auth",
-	})
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "Refresh",
-		Value:    ref,
-		Expires:  refExpirationTime,
-		HttpOnly: true,
-		Path:     "/auth",
-	})
-
-	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
 }
 
 func (e Endpoint) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 
-	acc, ref, err := e.tokensFromCookie(r)
+	accFromCookie, refFromCookie, err := e.tokensFromCookie(r)
 	if err != nil {
-		log.Println(err)
 		http.Error(w, "invalid request format", http.StatusBadRequest)
 		return
 	}
 
-	if ok := e.refH.Validate(ref, acc); !ok {
-		log.Println(err)
+	if ok := e.refH.Validate(refFromCookie, accFromCookie); !ok {
 		http.Error(w, "invalid request format", http.StatusBadRequest)
 		return
 	}
 
-	_, accPayload, err := e.jwtG.ParseToStruct(acc)
+	_, accPayload, err := jwt.ParseToStruct(accFromCookie)
 	if err != nil {
-		log.Println(err)
 		http.Error(w, "invalid request format", http.StatusBadRequest)
 		return
 	}
 
 	guid := accPayload.Sub
+	if guid == "" {
+		http.Error(w, "invalid request format", http.StatusBadRequest)
+		return
+	}
 
 	refFromDB, err := e.db.Find(context.TODO(), guid)
 	if err != nil {
@@ -120,11 +88,12 @@ func (e Endpoint) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid token", http.StatusBadRequest)
 			return
 		}
+		log.Println(err)
 		http.Error(w, "something went wrong", http.StatusInternalServerError)
 		return
 	}
 
-	err = bcrypt2.CompareHashAndPassword(refFromDB.Refresh, []byte(ref))
+	err = bcrypt2.CompareHashAndPassword(refFromDB.Refresh, []byte(refFromCookie))
 	if err != nil {
 		http.Error(w, "invalid token", http.StatusBadRequest)
 		return
@@ -154,45 +123,7 @@ func (e Endpoint) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accExpirationTime := time.Now().Add(time.Hour * accExp)
-	refExpirationTime := time.Now().Add(time.Hour * refreshExp)
+	e.setTokens(guid, "update", w)
 
-	newAcc, newRef := e.tokens(guid, accExpirationTime)
-
-	bcrypt, err := bcrypt2.GenerateFromPassword([]byte(newRef), 5)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
-	}
-
-	refToken := models.NewToken(guid, bcrypt, refExpirationTime.Unix())
-
-	err = e.db.Update(context.TODO(), guid, refToken)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "Access",
-		Value:    newAcc,
-		Expires:  refExpirationTime,
-		HttpOnly: true,
-		Path:     "/auth",
-	})
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "Refresh",
-		Value:    newRef,
-		Expires:  refExpirationTime,
-		HttpOnly: true,
-		Path:     "/auth",
-	})
-
-	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
-
-	fmt.Fprintf(w, "Acc:%v\n Ref:%v\n", acc, ref)
 }
