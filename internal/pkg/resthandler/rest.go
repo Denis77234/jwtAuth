@@ -18,17 +18,18 @@ func New(hf http.HandlerFunc) *RestHandler {
 func (h *RestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for _, method := range h.methods {
-		if r.Method != method {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			_, err := w.Write([]byte("Wrong method"))
-			if err != nil {
-				log.Println(err)
-			}
+		if r.Method == method {
+			h.hf(w, r)
 			return
 		}
 	}
 
-	h.hf(w, r)
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	_, err := w.Write([]byte("Wrong method"))
+	if err != nil {
+		log.Println(err)
+	}
+	
 }
 
 func (r *RestHandler) SetMethods(methods ...string) *RestHandler {

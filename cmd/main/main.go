@@ -30,7 +30,7 @@ func main() {
 
 	newtoken := resthandler.New(endp.GetTokens).SetMethods("POST")
 
-	reftokens := resthandler.New(endp.RefreshTokens).SetMethods("PUT")
+	reftokens := resthandler.New(endp.RefreshTokens).SetMethods("PUT", "POST")
 
 	mux := http.NewServeMux()
 

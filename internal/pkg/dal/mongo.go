@@ -10,7 +10,7 @@ import (
 )
 
 type Mongo struct {
-	Client *mongo.Client
+	coll *mongo.Collection
 }
 
 func New(uri string) (Mongo, error) {
@@ -28,31 +28,51 @@ func New(uri string) (Mongo, error) {
 		return Mongo{}, err
 	}
 
-	return Mongo{Client: client}, nil
+	coll := client.Database("tokens").Collection("refresh")
+
+	return Mongo{coll: coll}, nil
 }
 
-func (m *Mongo) AddRefresh(ctx context.Context, token models.Token) error {
-	coll := m.Client.Database("tokens").Collection("refresh")
+func (m *Mongo) Add(ctx context.Context, token models.Token) error {
 
-	_, err := coll.InsertOne(ctx, token)
+	_, err := m.coll.InsertOne(ctx, token)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func (m *Mongo) FindRefresh(ctx context.Context, guid string) (models.Token, error) {
-	coll := m.Client.Database("tokens").Collection("refresh")
-
+func (m *Mongo) Find(ctx context.Context, guid string) (models.Token, error) {
 	var refresh models.Token
 
-	tokenEncode := coll.FindOne(ctx, bson.D{{"guid", guid}})
+	tokenEncode := m.coll.FindOne(ctx, bson.D{{"guid", guid}})
 	if tokenEncode.Err() != nil {
 		return models.Token{}, nil
 	}
+
 	err := tokenEncode.Decode(&refresh)
 	if err != nil {
 		return models.Token{}, nil
 	}
+
 	return refresh, nil
+}
+
+func (m *Mongo) Delete(ctx context.Context, guid string) error {
+
+	_, err := m.coll.DeleteOne(ctx, bson.D{{"guid", guid}})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Mongo) Update(ctx context.Context, guid string, upd models.Token) error {
+	_, err := m.coll.UpdateOne(ctx, bson.D{{"guid", guid}}, bson.M{"$set": upd})
+	if err != nil {
+		return err
+	}
+	return nil
 }
