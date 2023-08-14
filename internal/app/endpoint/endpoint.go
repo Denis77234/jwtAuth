@@ -2,10 +2,11 @@ package endpoint
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	bcrypt2 "golang.org/x/crypto/bcrypt"
 	"log"
-	"medosTest/internal/pkg/dal"
+	"medosTest/internal/pkg/models"
 	"medosTest/internal/pkg/refresh"
 	"medosTest/pkg/jwt"
 	"net/http"
@@ -13,8 +14,8 @@ import (
 )
 
 type refreshDB interface {
-	AddRefresh(ctx context.Context, token dal.Token) error
-	FindRefresh(ctx context.Context, guid string) (dal.Token, error)
+	AddRefresh(ctx context.Context, token models.Token) error
+	FindRefresh(ctx context.Context, guid string) (models.Token, error)
 }
 
 type Endpoint struct {
@@ -28,39 +29,38 @@ func New(db refreshDB, jwtG jwt.Generator, refH refresh.Handler) Endpoint {
 	return e
 }
 
-func (e *Endpoint) tokens(id string, expTime time.Time) (access string, refresh string) {
-	payload := jwt.Payload{Sub: id, Iss: "medodsTest", Iat: time.Now().Unix(), Exp: expTime.Unix()}
+func (e *Endpoint) GetTokens(w http.ResponseWriter, r *http.Request) {
+	accC, refC, _ := e.tokensFromCookie(r)
+	if accC != "" || refC != "" {
+		http.Error(w, "tokens already set", http.StatusBadRequest)
+		return
+	}
 
-	access = e.jwtG.Generate(payload)
+	var GUID models.GUID
 
-	refresh = e.refH.Generate(access)
+	err := json.NewDecoder(r.Body).Decode(&GUID)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "invalid request format", http.StatusBadRequest)
+		return
+	}
 
-	return access, refresh
-}
-
-func (e *Endpoint) GetToken(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
-
-	if id == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		_, err := w.Write([]byte("Invalid id"))
-		if err != nil {
-			log.Println(err)
-		}
+	if GUID.GUID == "" {
+		http.Error(w, "invalid id", http.StatusUnauthorized)
 		return
 	}
 
 	accExpirationTime := time.Now().Add(time.Hour * 24 * 3)
 	refExpirationTime := time.Now().Add(time.Hour * 24 * 30)
 
-	acc, ref := e.tokens(id, accExpirationTime)
+	acc, ref := e.tokens(GUID.GUID, accExpirationTime)
 
 	bcrypt, err := bcrypt2.GenerateFromPassword([]byte(ref), 5)
 	if err != nil {
 		log.Println(err)
 	}
 
-	refToken := dal.NewToken(id, bcrypt, refExpirationTime.Unix())
+	refToken := models.NewToken(GUID.GUID, bcrypt, refExpirationTime.Unix())
 
 	err = e.db.AddRefresh(context.TODO(), refToken)
 	if err != nil {
@@ -70,7 +70,7 @@ func (e *Endpoint) GetToken(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "Access",
 		Value:    acc,
-		Expires:  accExpirationTime,
+		Expires:  refExpirationTime,
 		HttpOnly: true,
 	})
 
@@ -81,8 +81,46 @@ func (e *Endpoint) GetToken(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	_, err = fmt.Fprintf(w, "ACCESS: %v\n REFRESH: %v\n", acc, ref)
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
+}
+
+func (e Endpoint) RefreshTokens(w http.ResponseWriter, r *http.Request) {
+	acc, ref, err := e.tokensFromCookie(r)
 	if err != nil {
 		log.Println(err)
+		http.Error(w, "invalid request format", http.StatusBadRequest)
+		return
 	}
+
+	if ok := e.refH.Validate(ref, acc); !ok {
+		log.Println(err)
+		http.Error(w, "invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprintf(w, "Acc:%v\n Ref:%v\n", acc, ref)
+}
+
+func (e *Endpoint) tokens(id string, expTime time.Time) (access string, refresh string) {
+	payload := jwt.Payload{Sub: id, Iss: "medodsTest", Iat: time.Now().Unix(), Exp: expTime.Unix()}
+
+	access = e.jwtG.Generate(payload)
+
+	refresh = e.refH.Generate(access)
+
+	return access, refresh
+}
+
+func (e Endpoint) tokensFromCookie(r *http.Request) (string, string, error) {
+	acc, err := r.Cookie("Access")
+	if err != nil {
+		return "", "", err
+	}
+	ref, err := r.Cookie("Refresh")
+	if err != nil {
+		return "", "", err
+	}
+
+	return acc.Value, ref.Value, nil
 }

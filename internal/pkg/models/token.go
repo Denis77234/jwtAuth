@@ -1,4 +1,4 @@
-package dal
+package models
 
 type Token struct {
 	GUID    string

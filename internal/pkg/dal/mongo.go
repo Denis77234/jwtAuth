@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"medosTest/internal/pkg/models"
 	"time"
 )
 
@@ -30,7 +31,7 @@ func New(uri string) (Mongo, error) {
 	return Mongo{Client: client}, nil
 }
 
-func (m *Mongo) AddRefresh(ctx context.Context, token Token) error {
+func (m *Mongo) AddRefresh(ctx context.Context, token models.Token) error {
 	coll := m.Client.Database("tokens").Collection("refresh")
 
 	_, err := coll.InsertOne(ctx, token)
@@ -40,18 +41,18 @@ func (m *Mongo) AddRefresh(ctx context.Context, token Token) error {
 	return nil
 }
 
-func (m *Mongo) FindRefresh(ctx context.Context, guid string) (Token, error) {
+func (m *Mongo) FindRefresh(ctx context.Context, guid string) (models.Token, error) {
 	coll := m.Client.Database("tokens").Collection("refresh")
 
-	var refresh Token
+	var refresh models.Token
 
 	tokenEncode := coll.FindOne(ctx, bson.D{{"guid", guid}})
 	if tokenEncode.Err() != nil {
-		return Token{}, nil
+		return models.Token{}, nil
 	}
 	err := tokenEncode.Decode(&refresh)
 	if err != nil {
-		return Token{}, nil
+		return models.Token{}, nil
 	}
 	return refresh, nil
 }

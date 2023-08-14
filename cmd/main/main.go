@@ -28,11 +28,14 @@ func main() {
 
 	endp := endpoint.New(&db, jwtG, ref)
 
-	handler := resthandler.New(endp.GetToken).SetMethods("GET")
+	newtoken := resthandler.New(endp.GetTokens).SetMethods("POST")
+
+	reftokens := resthandler.New(endp.RefreshTokens).SetMethods("PUT")
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/getToken", handler)
+	mux.Handle("/auth/Tokens", newtoken)
+	mux.Handle("/auth/Refresh", reftokens)
 
 	err = http.ListenAndServe(":4000", mux)
 	if err != nil {
@@ -41,9 +44,3 @@ func main() {
 
 	fmt.Println(1)
 }
-
-//func validJWT(jwt string) bool {
-//	parse := strings.Split(jwt, ".")
-//	check := makeSignature(parse[0], parse[1])
-//	return check == parse[2]
-//}
