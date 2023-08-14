@@ -10,7 +10,7 @@ type Payload struct {
 	Iss string `json:"iss,omitempty"`
 	Sub string `json:"sub,omitempty"`
 	Aud string `json:"aud,omitempty"`
-	Exp string `json:"exp,omitempty"`
+	Exp int64  `json:"exp,omitempty"`
 	Nbf string `json:"nbf,omitempty"`
 	Jti string `json:"jti,omitempty"`
 	Iat int64  `json:"iat,omitempty"`

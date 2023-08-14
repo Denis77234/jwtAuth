@@ -19,7 +19,7 @@ func (h *RestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for _, method := range h.methods {
 		if r.Method != method {
-			w.WriteHeader(405)
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			_, err := w.Write([]byte("Wrong method"))
 			if err != nil {
 				log.Println(err)

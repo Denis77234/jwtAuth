@@ -30,10 +30,8 @@ func New(uri string) (Mongo, error) {
 	return Mongo{Client: client}, nil
 }
 
-func (m *Mongo) AddRefresh(ctx context.Context, refresh, GUID string) error {
+func (m *Mongo) AddRefresh(ctx context.Context, token Token) error {
 	coll := m.Client.Database("tokens").Collection("refresh")
-
-	token := newToken(GUID, refresh)
 
 	_, err := coll.InsertOne(ctx, token)
 	if err != nil {

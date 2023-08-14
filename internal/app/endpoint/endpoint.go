@@ -3,6 +3,7 @@ package endpoint
 import (
 	"context"
 	"fmt"
+	bcrypt2 "golang.org/x/crypto/bcrypt"
 	"log"
 	"medosTest/internal/pkg/dal"
 	"medosTest/internal/pkg/refresh"
@@ -12,7 +13,7 @@ import (
 )
 
 type refreshDB interface {
-	AddRefresh(ctx context.Context, refresh, GUID string) error
+	AddRefresh(ctx context.Context, token dal.Token) error
 	FindRefresh(ctx context.Context, guid string) (dal.Token, error)
 }
 
@@ -27,8 +28,8 @@ func New(db refreshDB, jwtG jwt.Generator, refH refresh.Handler) Endpoint {
 	return e
 }
 
-func (e *Endpoint) tokens(id string) (access string, refresh string) {
-	payload := jwt.Payload{Sub: id, Iss: "medodsTest", Iat: time.Now().Unix()}
+func (e *Endpoint) tokens(id string, expTime time.Time) (access string, refresh string) {
+	payload := jwt.Payload{Sub: id, Iss: "medodsTest", Iat: time.Now().Unix(), Exp: expTime.Unix()}
 
 	access = e.jwtG.Generate(payload)
 
@@ -41,7 +42,7 @@ func (e *Endpoint) GetToken(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 
 	if id == "" {
-		w.WriteHeader(401)
+		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Invalid id"))
 		if err != nil {
 			log.Println(err)
@@ -49,9 +50,38 @@ func (e *Endpoint) GetToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc, ref := e.tokens(id)
+	accExpirationTime := time.Now().Add(time.Hour * 24 * 3)
+	refExpirationTime := time.Now().Add(time.Hour * 24 * 30)
 
-	_, err := fmt.Fprintf(w, "ACCESS: %v\n REFRESH: %v\n", acc, ref)
+	acc, ref := e.tokens(id, accExpirationTime)
+
+	bcrypt, err := bcrypt2.GenerateFromPassword([]byte(ref), 5)
+	if err != nil {
+		log.Println(err)
+	}
+
+	refToken := dal.NewToken(id, bcrypt, refExpirationTime.Unix())
+
+	err = e.db.AddRefresh(context.TODO(), refToken)
+	if err != nil {
+		log.Println(err)
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "Access",
+		Value:    acc,
+		Expires:  accExpirationTime,
+		HttpOnly: true,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "Refresh",
+		Value:    ref,
+		Expires:  refExpirationTime,
+		HttpOnly: true,
+	})
+
+	_, err = fmt.Fprintf(w, "ACCESS: %v\n REFRESH: %v\n", acc, ref)
 	if err != nil {
 		log.Println(err)
 	}
