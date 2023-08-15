@@ -2,7 +2,7 @@ package refresh
 
 import (
 	"crypto/hmac"
-	"encoding/hex"
+	"encoding/base64"
 	"hash"
 )
 
@@ -22,7 +22,7 @@ func (h Handler) Generate(accessToken string) string {
 
 	hashFunc.Write([]byte(accessToken))
 
-	return hex.EncodeToString(hashFunc.Sum(nil))
+	return base64.RawURLEncoding.EncodeToString(hashFunc.Sum(nil))
 }
 
 func (h Handler) Validate(refresh, access string) bool {

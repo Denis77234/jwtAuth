@@ -9,7 +9,6 @@ import (
 	"medosTest/internal/pkg/restDecorator"
 	"medosTest/pkg/jwt"
 	"net/http"
-	"os"
 )
 
 type Myapp struct {
@@ -20,7 +19,7 @@ type Myapp struct {
 func New() *Myapp {
 	m := &Myapp{}
 
-	db, err := dal.New(os.Getenv("MONGO_URI"))
+	db, err := dal.New("mongodb://localhost:27017")
 	if err != nil {
 		log.Fatal(err)
 	}

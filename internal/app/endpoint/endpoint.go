@@ -72,7 +72,7 @@ func (e *Endpoint) GetTokens(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	
+
 	e.setTokens(GUID.GUID, "add", w)
 
 	w.WriteHeader(http.StatusOK)
