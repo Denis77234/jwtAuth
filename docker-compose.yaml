@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo
+    restart: always
+    platform:
+      linux/x86_64
+    networks:
+        - default
+    ports:
+      - 27017:27017
+
+
+  go-jwt:
+    build: .
+    ports:
+      - 8080:4000/tcp
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+
+
+
