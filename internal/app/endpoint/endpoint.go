@@ -52,6 +52,27 @@ func (e *Endpoint) GetTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenExistsInDb := true
+	_, err = e.db.Find(context.TODO(), GUID.GUID)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			tokenExistsInDb = false
+		} else {
+			log.Println(err)
+			http.Error(w, "something went wrong", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if tokenExistsInDb {
+		err = e.db.Delete(context.TODO(), GUID.GUID)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "something went wrong", http.StatusInternalServerError)
+			return
+		}
+	}
+	
 	e.setTokens(GUID.GUID, "add", w)
 
 	w.WriteHeader(http.StatusOK)
