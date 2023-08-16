@@ -73,7 +73,7 @@ func (e *Endpoint) GetTokens(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	e.setTokens(GUID.GUID, "add", w)
+	e.setTokens(GUID.GUID, w, "add")
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -144,7 +144,7 @@ func (e Endpoint) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e.setTokens(guid, "update", w)
+	e.setTokens(guid, w, "update")
 
 	w.WriteHeader(http.StatusOK)
 }

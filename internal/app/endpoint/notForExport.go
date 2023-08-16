@@ -37,7 +37,7 @@ func (e *Endpoint) tokensFromCookie(r *http.Request) (string, string, error) {
 	return acc.Value, ref.Value, nil
 }
 
-func (e Endpoint) setTokens(guid string, option string, w http.ResponseWriter) {
+func (e Endpoint) setTokens(guid string, w http.ResponseWriter, option string) {
 	accExpirationTime := time.Now().Add(time.Hour * accExp)
 	refExpirationTime := time.Now().Add(time.Hour * refreshExp)
 
