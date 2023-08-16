@@ -20,6 +20,9 @@ services:
       - mongo
     environment:
       MONGO_URI: mongodb://mongo:27017
+      ACC_SECRET: topsecret
+      REF_SECRET: reftopsecret
+      
 
 
 

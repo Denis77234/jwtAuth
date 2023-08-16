@@ -25,12 +25,12 @@ func New() *Myapp {
 		log.Fatal(err)
 	}
 
-	jwtG, err := jwt.NewGenerator("HS512", "topsecret")
+	jwtG, err := jwt.NewGenerator("HS512", os.Getenv("ACC_SECRET"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ref := refresh.NewHandler(sha256.New, "refsecret")
+	ref := refresh.NewHandler(sha256.New, os.Getenv("REF_SECRET"))
 
 	m.endpoint = endpoint.New(&db, jwtG, ref)
 
