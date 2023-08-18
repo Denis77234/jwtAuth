@@ -9,16 +9,17 @@ services:
     networks:
         - default
     ports:
-      - 27017:27017
+      - "27017:27017"
 
 
   go-jwt:
     build: .
     ports:
-      - 8080:4000/tcp
+      - "8080:4000/tcp"
     depends_on:
       - mongo
     environment:
+      JWTSERV_PORT: ":4000"
       MONGO_URI: mongodb://mongo:27017
       ACC_SECRET: topsecret
       REF_SECRET: reftopsecret

@@ -13,14 +13,17 @@ import (
 )
 
 type Myapp struct {
-	tk  *service.TokenManager
-	mux *http.ServeMux
+	tk   *service.TokenManager
+	mux  *http.ServeMux
+	port string
 }
 
 func New() *Myapp {
 	m := &Myapp{}
 
 	cfg := newCfg()
+
+	m.port = cfg.port
 
 	db, err := mongo.New(cfg.mongoUri)
 	if err != nil {
@@ -45,7 +48,7 @@ func New() *Myapp {
 }
 
 func (m *Myapp) Start() {
-	err := http.ListenAndServe(":4000", m.mux)
+	err := http.ListenAndServe(m.port, m.mux)
 	if err != nil {
 		log.Fatalf("server initialisation error: %v\n", err)
 	}

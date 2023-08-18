@@ -6,12 +6,18 @@ import (
 )
 
 type config struct {
+	port       string
 	mongoUri   string
 	accessKey  string
 	refreshKey string
 }
 
 func newCfg() config {
+	port, ok := os.LookupEnv("JWTSERV_PORT")
+	if !ok {
+		log.Fatal("env variable JWTSERV_PORT not found")
+	}
+
 	monUri, ok := os.LookupEnv("MONGO_URI")
 	if !ok {
 		log.Fatal("env variable MONGO_URI not found")
@@ -28,6 +34,7 @@ func newCfg() config {
 	}
 
 	return config{
+		port:       port,
 		mongoUri:   monUri,
 		accessKey:  accKey,
 		refreshKey: refKey,
