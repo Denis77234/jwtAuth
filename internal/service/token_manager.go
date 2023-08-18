@@ -31,23 +31,23 @@ func New(db refreshStorage, jwtG jwt.Generator, refH refresh.Handler) *TokenMana
 func (t *TokenManager) GetTokens(guid string) (string, string, error) {
 	err := t.deleteTokenIfInDb(guid)
 	if err != nil {
-		return "", "", fmt.Errorf("already setted tokens: %v\n", err)
+		return "", "", fmt.Errorf("can't delete setted tokens: %w\n", err)
 	}
 
 	accExpirationTime := time.Now().Add(time.Hour * AccExp)
 	newAcc, newRef, err := t.tokens(guid, accExpirationTime)
 	if err != nil {
-		return "", "", fmt.Errorf("token generation: %v\n", err)
+		return "", "", fmt.Errorf("token generation: %w\n", err)
 	}
 
 	refreshToken, err := t.makeRefreshToken(guid, newRef)
 	if err != nil {
-		return "", "", fmt.Errorf("make refresh token error: %v\n", err)
+		return "", "", fmt.Errorf("make refresh token error: %w\n", err)
 	}
 
 	err = t.db.Add(context.TODO(), refreshToken)
 	if err != nil {
-		return "", "", fmt.Errorf("database access error: %v\n", err)
+		return "", "", fmt.Errorf("database access error: %w\n", err)
 	}
 
 	return newAcc, newRef, nil
@@ -60,12 +60,12 @@ func (t *TokenManager) RefreshTokens(access, refresh string) (string, string, er
 
 	guid, err := t.guidFromToken(access)
 	if err != nil {
-		return "", "", fmt.Errorf("guid check: %v\n", err)
+		return "", "", err
 	}
 
 	refFromDB, err := t.db.Find(context.TODO(), guid)
 	if err != nil {
-		return "", "", fmt.Errorf("refresh check: %v\n", err)
+		return "", "", fmt.Errorf("cant't find refresh: %w\n", err)
 	}
 
 	err = t.validateRefresh(refresh, refFromDB)
@@ -73,7 +73,7 @@ func (t *TokenManager) RefreshTokens(access, refresh string) (string, string, er
 		if err == ExpiredToken {
 			err = t.db.Delete(context.TODO(), guid)
 			if err != nil {
-				return "", "", fmt.Errorf("expired refresh: %v\n", err)
+				return "", "", fmt.Errorf("can't delete expired refresh: %w\n", err)
 			}
 		}
 		return "", "", err
@@ -82,17 +82,17 @@ func (t *TokenManager) RefreshTokens(access, refresh string) (string, string, er
 	accExpirationTime := time.Now().Add(time.Hour * AccExp)
 	newAcc, newRef, err := t.tokens(guid, accExpirationTime)
 	if err != nil {
-		return "", "", fmt.Errorf("token generation: %v\n", err)
+		return "", "", fmt.Errorf("can't generate tokens: %w\n", err)
 	}
 
 	refreshToken, err := t.makeRefreshToken(guid, newRef)
 	if err != nil {
-		return "", "", fmt.Errorf("make refresh token error: %v\n", err)
+		return "", "", fmt.Errorf("can't make refresh token: %w\n", err)
 	}
 
 	err = t.db.Update(context.TODO(), guid, refreshToken)
 	if err != nil {
-		return "", "", fmt.Errorf("database access error: %v\n", err)
+		return "", "", fmt.Errorf("can't update token: %w\n", err)
 	}
 
 	return newAcc, newRef, nil

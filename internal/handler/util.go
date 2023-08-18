@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -10,14 +11,19 @@ import (
 	"medosTest/internal/service"
 )
 
+var errMissCookies = errors.New("miss cookies")
+
 func tokensFromCookie(r *http.Request) (string, string, error) {
-	acc, err := r.Cookie("Access")
-	if err != nil {
-		return "", "", err
+	acc, err1 := r.Cookie("Access")
+
+	ref, err2 := r.Cookie("Refresh")
+
+	if err1 != nil && err2 != nil {
+		return "", "", errMissCookies
 	}
-	ref, err := r.Cookie("Refresh")
-	if err != nil {
-		return "", "", err
+
+	if err1 != nil || err2 != nil {
+		return "", "", http.ErrNoCookie
 	}
 
 	return acc.Value, ref.Value, nil

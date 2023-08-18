@@ -30,7 +30,7 @@ func (t *TokenManager) tokens(id string, expTime time.Time) (access string, refr
 
 	access, err = t.jwtG.Generate(payload)
 	if err != nil {
-		return "", "", fmt.Errorf("jwt geneartor error: %v\n", err)
+		return "", "", fmt.Errorf("jwt geneartor error: %w\n", err)
 
 	}
 
@@ -44,7 +44,7 @@ func (t *TokenManager) makeRefreshToken(guid, refresh string) (models.Token, err
 
 	bcryptedToken, err := bcrypt2.GenerateFromPassword([]byte(refresh), 5)
 	if err != nil {
-		return models.Token{}, fmt.Errorf("bcryption error: %v\n", err)
+		return models.Token{}, err
 	}
 
 	refToken := models.Token{GUID: guid, Refresh: bcryptedToken, ExpTime: refExpirationTime.Unix()}
@@ -57,17 +57,18 @@ func (t *TokenManager) deleteTokenIfInDb(guid string) error {
 
 	_, err := t.db.Find(context.TODO(), guid)
 	if err != nil {
-		if errors.Is(mongo.ErrNoDocuments, err) {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			tokenExistsInDb = false
+
 		} else {
-			return fmt.Errorf("database access error: %v\n", err)
+			return err
 		}
 	}
 
 	if tokenExistsInDb {
 		err = t.db.Delete(context.TODO(), guid)
 		if err != nil {
-			return fmt.Errorf("database access error: %v\n", err)
+			return err
 		}
 	}
 	return nil

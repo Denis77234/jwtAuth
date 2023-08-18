@@ -18,7 +18,7 @@ func GetToken(tk *service.TokenManager, allowedMethods ...string) http.HandlerFu
 		}
 
 		_, _, err = tokensFromCookie(r)
-		if err != http.ErrNoCookie {
+		if err != errMissCookies {
 			http.Error(w, "tokens already set", http.StatusBadRequest)
 			return
 		}

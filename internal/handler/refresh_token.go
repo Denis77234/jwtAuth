@@ -28,10 +28,10 @@ func RefreshToken(tk *service2.TokenManager, allowedMethods ...string) http.Hand
 
 		newAcc, newRef, err := tk.RefreshTokens(accFromCookie, refFromCookie)
 		if err != nil {
-			if errors.Is(mongo.ErrNoDocuments, err) || errors.Is(service2.ValidationErr, err) || errors.Is(err, service2.ErrInvalidFormat) || errors.Is(service2.InvalidToken, err) {
+			if errors.Is(err, mongo.ErrNoDocuments) || errors.Is(err, service2.ValidationErr) || errors.Is(err, service2.ErrInvalidFormat) || errors.Is(err, service2.InvalidToken) {
 				http.Error(w, "invalid token", http.StatusBadRequest)
 				return
-			} else if errors.Is(service2.ExpiredToken, err) {
+			} else if errors.Is(err, service2.ExpiredToken) {
 				http.Error(w, "expired token", http.StatusBadRequest)
 				return
 			} else {

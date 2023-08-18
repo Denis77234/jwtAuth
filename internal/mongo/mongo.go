@@ -23,12 +23,12 @@ func New(uri string) (Mongo, error) {
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
-		return Mongo{}, fmt.Errorf("client initialisation error: %v\n", err)
+		return Mongo{}, fmt.Errorf("client initialisation error: %w\n", err)
 	}
 
 	err = client.Ping(ctx, nil)
 	if err != nil {
-		return Mongo{}, fmt.Errorf("client ping error: %v\n", err)
+		return Mongo{}, fmt.Errorf("client ping error: %w\n", err)
 	}
 
 	coll := client.Database("tokens").Collection("refresh")
@@ -39,7 +39,7 @@ func New(uri string) (Mongo, error) {
 func (m *Mongo) Add(ctx context.Context, token models.Token) error {
 	_, err := m.coll.InsertOne(ctx, token)
 	if err != nil {
-		return fmt.Errorf("insertion error: %v\n", err)
+		return fmt.Errorf("insertion error: %w\n", err)
 	}
 
 	return nil
@@ -50,12 +50,12 @@ func (m *Mongo) Find(ctx context.Context, guid string) (models.Token, error) {
 
 	tokenEncode := m.coll.FindOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}})
 	if tokenEncode.Err() != nil {
-		return models.Token{}, fmt.Errorf("finding error: %v\n", tokenEncode.Err())
+		return models.Token{}, fmt.Errorf("finding error: %w\n", tokenEncode.Err())
 	}
 
 	err := tokenEncode.Decode(&refresh)
 	if err != nil {
-		return models.Token{}, fmt.Errorf("decoding error: %v\n", tokenEncode.Err())
+		return models.Token{}, fmt.Errorf("decoding error: %w\n", tokenEncode.Err())
 	}
 
 	return refresh, nil
@@ -64,7 +64,7 @@ func (m *Mongo) Find(ctx context.Context, guid string) (models.Token, error) {
 func (m *Mongo) Delete(ctx context.Context, guid string) error {
 	_, err := m.coll.DeleteOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}})
 	if err != nil {
-		return fmt.Errorf("deleting error: %v\n", err)
+		return fmt.Errorf("deleting error: %w\n", err)
 	}
 
 	return nil
@@ -73,7 +73,7 @@ func (m *Mongo) Delete(ctx context.Context, guid string) error {
 func (m *Mongo) Update(ctx context.Context, guid string, upd models.Token) error {
 	_, err := m.coll.UpdateOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}}, bson.M{"$set": upd})
 	if err != nil {
-		return fmt.Errorf("updating error: %v\n", err)
+		return fmt.Errorf("updating error: %w\n", err)
 	}
 	return nil
 }
