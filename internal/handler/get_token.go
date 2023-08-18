@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"medosTest/internal/pkg/service"
+	"medosTest/internal/service"
 )
 
 func GetToken(tk *service.TokenManager, allowedMethods ...string) http.HandlerFunc {

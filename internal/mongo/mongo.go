@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"medosTest/internal/pkg/models"
+	"medosTest/internal/models"
 )
 
 type Mongo struct {
@@ -47,7 +48,7 @@ func (m *Mongo) Add(ctx context.Context, token models.Token) error {
 func (m *Mongo) Find(ctx context.Context, guid string) (models.Token, error) {
 	var refresh models.Token
 
-	tokenEncode := m.coll.FindOne(ctx, bson.D{{"guid", guid}})
+	tokenEncode := m.coll.FindOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}})
 	if tokenEncode.Err() != nil {
 		return models.Token{}, fmt.Errorf("finding error: %v\n", tokenEncode.Err())
 	}
@@ -61,7 +62,7 @@ func (m *Mongo) Find(ctx context.Context, guid string) (models.Token, error) {
 }
 
 func (m *Mongo) Delete(ctx context.Context, guid string) error {
-	_, err := m.coll.DeleteOne(ctx, bson.D{{"guid", guid}})
+	_, err := m.coll.DeleteOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}})
 	if err != nil {
 		return fmt.Errorf("deleting error: %v\n", err)
 	}
@@ -70,9 +71,9 @@ func (m *Mongo) Delete(ctx context.Context, guid string) error {
 }
 
 func (m *Mongo) Update(ctx context.Context, guid string, upd models.Token) error {
-	_, err := m.coll.UpdateOne(ctx, bson.D{{"guid", guid}}, bson.M{"$set": upd})
+	_, err := m.coll.UpdateOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}}, bson.M{"$set": upd})
 	if err != nil {
-		fmt.Errorf("updating error: %v\n", err)
+		return fmt.Errorf("updating error: %v\n", err)
 	}
 	return nil
 }

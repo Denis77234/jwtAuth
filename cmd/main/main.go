@@ -1,7 +1,7 @@
 package main
 
 import (
-	"medosTest/internal/pkg/app"
+	"medosTest/internal/app"
 )
 
 func main() {

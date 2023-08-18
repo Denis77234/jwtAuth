@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	bcrypt2 "golang.org/x/crypto/bcrypt"
-	"medosTest/internal/pkg/models"
+
+	"medosTest/internal/models"
 	"medosTest/pkg/jwt"
-	"time"
 )
 
 const (
@@ -55,7 +57,7 @@ func (t *TokenManager) deleteTokenIfInDb(guid string) error {
 
 	_, err := t.db.Find(context.TODO(), guid)
 	if err != nil {
-		if errors.As(err, &mongo.ErrNoDocuments) {
+		if errors.Is(mongo.ErrNoDocuments, err) {
 			tokenExistsInDb = false
 		} else {
 			return fmt.Errorf("database access error: %v\n", err)

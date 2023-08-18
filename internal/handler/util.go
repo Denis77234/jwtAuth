@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"medosTest/internal/pkg/models"
-	"medosTest/internal/pkg/service"
+	"medosTest/internal/models"
+	"medosTest/internal/service"
 )
 
 func tokensFromCookie(r *http.Request) (string, string, error) {

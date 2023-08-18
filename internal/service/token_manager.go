@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"medosTest/internal/pkg/models"
-	"medosTest/internal/pkg/refresh"
+	"medosTest/internal/models"
+	"medosTest/internal/refresh"
 	"medosTest/pkg/jwt"
 )
 
@@ -41,6 +41,10 @@ func (t *TokenManager) GetTokens(guid string) (string, string, error) {
 	}
 
 	refreshToken, err := t.makeRefreshToken(guid, newRef)
+	if err != nil {
+		return "", "", fmt.Errorf("make refresh token error: %v\n", err)
+	}
+
 	err = t.db.Add(context.TODO(), refreshToken)
 	if err != nil {
 		return "", "", fmt.Errorf("database access error: %v\n", err)
@@ -82,6 +86,10 @@ func (t *TokenManager) RefreshTokens(access, refresh string) (string, string, er
 	}
 
 	refreshToken, err := t.makeRefreshToken(guid, newRef)
+	if err != nil {
+		return "", "", fmt.Errorf("make refresh token error: %v\n", err)
+	}
+
 	err = t.db.Update(context.TODO(), guid, refreshToken)
 	if err != nil {
 		return "", "", fmt.Errorf("database access error: %v\n", err)

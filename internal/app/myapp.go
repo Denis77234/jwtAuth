@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 
-	"medosTest/internal/pkg/handler"
-	"medosTest/internal/pkg/mongo"
-	"medosTest/internal/pkg/refresh"
-	"medosTest/internal/pkg/service"
+	handler2 "medosTest/internal/handler"
+	"medosTest/internal/mongo"
+	"medosTest/internal/refresh"
+	"medosTest/internal/service"
 	"medosTest/pkg/jwt"
 )
 
@@ -38,8 +38,8 @@ func New() *Myapp {
 
 	m.mux = http.NewServeMux()
 
-	m.mux.Handle("/auth/Tokens", handler.GetToken(m.tk, "POST"))
-	m.mux.Handle("/auth/Refresh", handler.RefreshToken(m.tk, "PUT"))
+	m.mux.Handle("/auth/Tokens", handler2.GetToken(m.tk, "POST"))
+	m.mux.Handle("/auth/Refresh", handler2.RefreshToken(m.tk, "PUT"))
 
 	return m
 }

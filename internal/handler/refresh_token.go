@@ -8,10 +8,10 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"medosTest/internal/pkg/service"
+	service2 "medosTest/internal/service"
 )
 
-func RefreshToken(tk *service.TokenManager, allowedMethods ...string) http.HandlerFunc {
+func RefreshToken(tk *service2.TokenManager, allowedMethods ...string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := checkMethods(r, allowedMethods)
 		if err != nil {
@@ -28,10 +28,10 @@ func RefreshToken(tk *service.TokenManager, allowedMethods ...string) http.Handl
 
 		newAcc, newRef, err := tk.RefreshTokens(accFromCookie, refFromCookie)
 		if err != nil {
-			if errors.As(err, &mongo.ErrNoDocuments) || errors.As(err, &service.ValidationErr) || errors.As(err, &service.ErrInvalidFormat) || errors.As(err, &service.InvalidToken) {
+			if errors.Is(mongo.ErrNoDocuments, err) || errors.Is(service2.ValidationErr, err) || errors.Is(err, service2.ErrInvalidFormat) || errors.Is(service2.InvalidToken, err) {
 				http.Error(w, "invalid token", http.StatusBadRequest)
 				return
-			} else if errors.As(err, &service.ExpiredToken) {
+			} else if errors.Is(service2.ExpiredToken, err) {
 				http.Error(w, "expired token", http.StatusBadRequest)
 				return
 			} else {

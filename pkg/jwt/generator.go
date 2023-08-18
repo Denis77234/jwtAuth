@@ -54,12 +54,12 @@ func (g Generator) Generate(p Payload) (string, error) {
 
 	hdr, err := h.base64()
 	if err != nil {
-		return "", fmt.Errorf("b64 header encoding error: %v\n")
+		return "", fmt.Errorf("b64 header encoding error: %v\n", err)
 	}
 
 	payload, err := p.base64()
 	if err != nil {
-		return "", fmt.Errorf("b64 payload encoding error: %v\n")
+		return "", fmt.Errorf("b64 payload encoding error: %v\n", err)
 	}
 
 	sign := g.makeSignature(hdr, payload)
