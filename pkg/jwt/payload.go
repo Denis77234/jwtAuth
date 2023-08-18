@@ -3,7 +3,7 @@ package jwt
 import (
 	"encoding/base64"
 	"encoding/json"
-	"log"
+	"fmt"
 )
 
 type Payload struct {
@@ -16,13 +16,12 @@ type Payload struct {
 	Iat int64  `json:"iat,omitempty"`
 }
 
-func (b Payload) base64() string {
-
+func (b Payload) base64() (string, error) {
 	bytes, err := json.Marshal(b)
 	if err != nil {
-		log.Println(err)
+		return "", fmt.Errorf("marshall error: %v\n")
 	}
 	b64Body := base64.RawURLEncoding.EncodeToString(bytes)
 
-	return b64Body
+	return b64Body, nil
 }

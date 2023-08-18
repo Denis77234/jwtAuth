@@ -1,9 +1,11 @@
 package main
 
-import "medosTest/internal/app/myapp"
+import (
+	"medosTest/internal/pkg/app"
+)
 
 func main() {
-	app := myapp.New()
+	app := app.New()
 
 	app.Start()
 }

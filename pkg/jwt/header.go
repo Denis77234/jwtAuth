@@ -3,7 +3,7 @@ package jwt
 import (
 	"encoding/base64"
 	"encoding/json"
-	"log"
+	"fmt"
 )
 
 type header struct {
@@ -11,14 +11,13 @@ type header struct {
 	Typ string `json:"typ"`
 }
 
-func (h header) base64() string {
-
+func (h header) base64() (string, error) {
 	bytes, err := json.Marshal(h)
 	if err != nil {
-		log.Println(err)
+		return "", fmt.Errorf("b64 header marshall error: %v\n")
 	}
 
 	b64Hdr := base64.RawURLEncoding.EncodeToString(bytes)
 
-	return b64Hdr
+	return b64Hdr, nil
 }
