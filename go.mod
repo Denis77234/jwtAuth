@@ -1,4 +1,4 @@
-module medosTest
+module medodsTest
 
 go 1.20
 

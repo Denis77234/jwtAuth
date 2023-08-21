@@ -1,80 +1,34 @@
 package service
 
 import (
-	"context"
-	"errors"
-	"fmt"
+	"encoding/json"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-	bcrypt2 "golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/bcrypt"
 
-	"medosTest/internal/models"
-	"medosTest/pkg/jwt"
+	"medodsTest/internal/model"
+	"medodsTest/pkg/jwt"
 )
 
 const (
-	AccExp     = 24 * 10
-	RefreshExp = 24 * 30
+	AccessTokenLifetime  = 24 * 10 * time.Hour
+	RefreshTokenLifetime = 24 * 30 * time.Hour
 )
 
-var (
-	ValidationErr    = errors.New("validation error")
-	ErrInvalidFormat = errors.New("invalid format")
-	InvalidToken     = errors.New("invalid token")
-	ExpiredToken     = errors.New("expired token")
-)
+func (tm *TokenManager) makeRefreshToken(guid, refresh string) (model.Token, error) {
+	refExpirationTime := time.Now().Add(RefreshTokenLifetime)
 
-func (t *TokenManager) tokens(id string, expTime time.Time) (access string, refresh string, err error) {
-	payload := jwt.Payload{Sub: id, Iss: "medodsTest", Iat: time.Now().Unix(), Exp: expTime.Unix()}
-
-	access, err = t.jwtG.Generate(payload)
+	bcryptedToken, err := bcrypt.GenerateFromPassword([]byte(refresh), 5)
 	if err != nil {
-		return "", "", fmt.Errorf("jwt geneartor error: %w\n", err)
-
+		return model.Token{}, err
 	}
 
-	refresh = t.refH.Generate(access)
-
-	return access, refresh, nil
-}
-
-func (t *TokenManager) makeRefreshToken(guid, refresh string) (models.Token, error) {
-	refExpirationTime := time.Now().Add(time.Hour * RefreshExp)
-
-	bcryptedToken, err := bcrypt2.GenerateFromPassword([]byte(refresh), 5)
-	if err != nil {
-		return models.Token{}, err
-	}
-
-	refToken := models.Token{GUID: guid, Refresh: bcryptedToken, ExpTime: refExpirationTime.Unix()}
+	refToken := model.Token{GUID: guid, Refresh: bcryptedToken, ExpTime: refExpirationTime.Unix()}
 
 	return refToken, nil
 }
 
-func (t *TokenManager) deleteTokenIfInDb(guid string) error {
-	tokenExistsInDb := true
-
-	_, err := t.db.Find(context.TODO(), guid)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			tokenExistsInDb = false
-
-		} else {
-			return err
-		}
-	}
-
-	if tokenExistsInDb {
-		err = t.db.Delete(context.TODO(), guid)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (t *TokenManager) guidFromToken(access string) (string, error) {
+func (tm *TokenManager) guidFromToken(access string) (string, error) {
 	_, accPayload, err := jwt.ParseToStruct(access)
 	if err != nil {
 		return "", ErrInvalidFormat
@@ -89,15 +43,26 @@ func (t *TokenManager) guidFromToken(access string) (string, error) {
 	return guid, nil
 }
 
-func (t *TokenManager) validateRefresh(refreshFromCookie string, refreshFromDb models.Token) error {
-	err := bcrypt2.CompareHashAndPassword(refreshFromDb.Refresh, []byte(refreshFromCookie))
+func (tm *TokenManager) validateRefresh(refreshFromCookie string, refreshFromDb model.Token) error {
+	err := bcrypt.CompareHashAndPassword(refreshFromDb.Refresh, []byte(refreshFromCookie))
 	if err != nil {
-		return InvalidToken
+		return ErrInvalidToken
 	}
 
 	if refreshFromDb.ExpTime < time.Now().Unix() {
-		return ExpiredToken
+		return ErrExpiredToken
 	}
 
 	return nil
+}
+
+func (tm TokenManager) marshalTokens(acc, ref string) ([]byte, error) {
+	pair := model.TokenPair{Access: acc, Refresh: ref}
+
+	bytes, err := json.Marshal(pair)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }

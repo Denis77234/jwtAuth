@@ -19,10 +19,10 @@ services:
     depends_on:
       - mongo
     environment:
-      JWTSERV_PORT: ":4000"
+      SERVER_PORT: ":4000"
       MONGO_URI: mongodb://mongo:27017
-      ACC_SECRET: topsecret
-      REF_SECRET: reftopsecret
+      ACCESS_SECRET: topsecret
+      REFRESH_SECRET: reftopsecret
       
 
 

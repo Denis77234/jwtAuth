@@ -1,55 +1,74 @@
 package app
 
 import (
+	"context"
 	"crypto/sha256"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"time"
 
-	handler2 "medosTest/internal/handler"
-	"medosTest/internal/mongo"
-	"medosTest/internal/refresh"
-	"medosTest/internal/service"
-	"medosTest/pkg/jwt"
+	"medodsTest/internal/handler"
+	"medodsTest/internal/mongo"
+	"medodsTest/internal/service"
+	"medodsTest/pkg/jwt"
 )
 
-type Myapp struct {
-	tk   *service.TokenManager
-	mux  *http.ServeMux
-	port string
-}
+const algorithmName = "HS512"
 
-func New() *Myapp {
-	m := &Myapp{}
-
+func Start(ctx context.Context) {
 	cfg := newCfg()
 
-	m.port = cfg.port
-
+	fmt.Println("connecting to db...")
 	db, err := mongo.New(cfg.mongoUri)
 	if err != nil {
 		log.Fatalf("database initialisation error: %v\n", err)
 	}
 
-	jwtG, err := jwt.NewGenerator("HS512", cfg.accessKey)
+	jwtG, err := jwt.NewGenerator(algorithmName, cfg.accessKey)
 	if err != nil {
 		log.Fatalf("jwt generator initialisation error: %v\n", err)
 	}
 
-	ref := refresh.NewHandler(sha256.New, cfg.refreshKey)
+	tk := service.NewTokenManager(&db, jwtG, cfg.refreshKey, sha256.New)
 
-	m.tk = service.New(&db, jwtG, ref)
+	mux := http.NewServeMux()
 
-	m.mux = http.NewServeMux()
+	mux.Handle("/auth/Tokens", handler.GetToken(tk, "POST"))
+	mux.Handle("/auth/Refresh", handler.RefreshToken(tk, "PUT"))
 
-	m.mux.Handle("/auth/Tokens", handler2.GetToken(m.tk, "POST"))
-	m.mux.Handle("/auth/Refresh", handler2.RefreshToken(m.tk, "PUT"))
+	server := &http.Server{Addr: cfg.port, Handler: mux}
 
-	return m
+	go func() {
+		fmt.Println("server started")
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server initialisation error: %v\n", err)
+		}
+	}()
+
+	<-ctx.Done()
+
+	stop(server, &db)
+
+	log.Println("app exited properly")
 }
 
-func (m *Myapp) Start() {
-	err := http.ListenAndServe(m.port, m.mux)
+func stop(serv *http.Server, db io.Closer) {
+
+	timedCtx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+
+	defer cancel()
+
+	err := serv.Shutdown(timedCtx)
 	if err != nil {
-		log.Fatalf("server initialisation error: %v\n", err)
+		log.Fatalf("server shutdown failed:%+v\n", err)
 	}
+
+	err = db.Close()
+	if err != nil {
+		log.Fatalf("database shutdown failed:%+v\n", err)
+	}
+
 }

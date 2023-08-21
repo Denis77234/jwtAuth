@@ -13,9 +13,9 @@ type config struct {
 }
 
 func newCfg() config {
-	port, ok := os.LookupEnv("JWTSERV_PORT")
+	port, ok := os.LookupEnv("SERVER_PORT")
 	if !ok {
-		log.Fatal("env variable JWTSERV_PORT not found")
+		log.Fatal("env variable SERVER_PORT not found")
 	}
 
 	monUri, ok := os.LookupEnv("MONGO_URI")
@@ -23,14 +23,14 @@ func newCfg() config {
 		log.Fatal("env variable MONGO_URI not found")
 	}
 
-	accKey, ok := os.LookupEnv("ACC_SECRET")
+	accKey, ok := os.LookupEnv("ACCESS_SECRET")
 	if !ok {
-		log.Fatal("env variable ACC_SECRET not found")
+		log.Fatal("env variable ACCESS_SECRET not found")
 	}
 
-	refKey, ok := os.LookupEnv("REF_SECRET")
+	refKey, ok := os.LookupEnv("REFRESH_SECRET")
 	if !ok {
-		log.Fatal("env variable REF_SECRET not found")
+		log.Fatal("env variable REFRESH_SECRET not found")
 	}
 
 	return config{
