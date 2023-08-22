@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
+
+	"medodsTest/internal/model"
 )
 
 func getAccessTokenFromHeader(r *http.Request) string {
@@ -33,4 +36,15 @@ func oneOfErrors(myerr error, targetsErr ...error) bool {
 
 	return false
 
+}
+
+func marshalTokens(acc, ref string) ([]byte, error) {
+	pair := model.TokenPair{Access: acc, Refresh: ref}
+
+	bytes, err := json.Marshal(pair)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }

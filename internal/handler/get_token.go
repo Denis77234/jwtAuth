@@ -32,15 +32,21 @@ func GetToken(tm *service.TokenManager, allowedMethods ...string) http.HandlerFu
 			return
 		}
 
-		tokensJson, err := tm.GetTokens(r.Context(), GUID.Guid)
+		access, refresh, err := tm.GetTokens(r.Context(), GUID.Guid)
 		if err != nil {
 			log.Printf("GetTokens error: %v\n", err)
 			http.Error(w, "something went wrong", http.StatusInternalServerError)
 			return
 		}
 
+		tokensJson, err := marshalTokens(access, refresh)
+		if err != nil {
+			log.Printf("marshal tokens error: %v\n", err)
+			http.Error(w, "something went wrong", http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "no-store")
 		_, err = w.Write(tokensJson)
 		if err != nil {
 			log.Printf("Writing response error: %v\n", err)

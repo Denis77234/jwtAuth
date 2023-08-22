@@ -14,7 +14,7 @@ type header struct {
 func (h header) base64() (string, error) {
 	bytes, err := json.Marshal(h)
 	if err != nil {
-		return "", fmt.Errorf("b64 header marshall error: %w\n", err)
+		return "", fmt.Errorf("b64 header marshall error: %w", err)
 	}
 
 	b64Hdr := base64.RawURLEncoding.EncodeToString(bytes)

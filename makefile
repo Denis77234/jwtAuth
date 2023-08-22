@@ -11,9 +11,3 @@ buildLocal:
 
 runLocal: buildLocal
 	./main
-
-setDefault:
-	export MONGO_URI=mongodb://localhost:27017
-	export SERVER_PORT=:4000
-	export ACCESS_SECRET=secret
-	export REFRESH_SECRET=secret

@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"crypto/sha256"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"time"
@@ -15,33 +13,34 @@ import (
 	"medodsTest/pkg/jwt"
 )
 
-const algorithmName = "HS512"
-
 func Start(ctx context.Context) {
 	cfg := newCfg()
 
-	fmt.Println("connecting to db...")
+	log.Println("connecting to db...")
 	db, err := mongo.New(cfg.mongoUri)
 	if err != nil {
 		log.Fatalf("database initialisation error: %v\n", err)
 	}
 
-	jwtG, err := jwt.NewGenerator(algorithmName, cfg.accessKey)
+	jwtG, err := jwt.NewGenerator(jwt.HS512, cfg.accessKey)
 	if err != nil {
 		log.Fatalf("jwt generator initialisation error: %v\n", err)
 	}
 
-	tk := service.NewTokenManager(&db, jwtG, cfg.refreshKey, sha256.New)
+	tk, err := service.NewTokenManager(&db, jwtG, cfg.refreshKey, sha256.New)
+	if err != nil {
+		log.Fatalf("token manager initialisation error: %v\n", err)
+	}
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/auth/Tokens", handler.GetToken(tk, "POST"))
-	mux.Handle("/auth/Refresh", handler.RefreshToken(tk, "PUT"))
+	mux.Handle("/auth/Tokens", handler.GetToken(tk, http.MethodPost))
+	mux.Handle("/auth/Refresh", handler.RefreshToken(tk, http.MethodPut))
 
 	server := &http.Server{Addr: cfg.port, Handler: mux}
 
 	go func() {
-		fmt.Println("server started")
+		log.Println("server started")
 		err := server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server initialisation error: %v\n", err)
@@ -50,25 +49,22 @@ func Start(ctx context.Context) {
 
 	<-ctx.Done()
 
-	stop(server, &db)
+	timedCtxServ, cancel1 := context.WithTimeout(context.Background(), time.Second*15)
 
-	log.Println("app exited properly")
-}
+	defer cancel1()
 
-func stop(serv *http.Server, db io.Closer) {
-
-	timedCtx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-
-	defer cancel()
-
-	err := serv.Shutdown(timedCtx)
+	err = server.Shutdown(timedCtxServ)
 	if err != nil {
 		log.Fatalf("server shutdown failed:%+v\n", err)
 	}
 
-	err = db.Close()
+	timedCtxDb, cancel2 := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel2()
+
+	err = db.Close(timedCtxDb)
 	if err != nil {
 		log.Fatalf("database shutdown failed:%+v\n", err)
 	}
 
+	log.Println("app exited properly")
 }

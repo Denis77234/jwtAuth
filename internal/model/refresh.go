@@ -1,5 +1,5 @@
 package model
 
-type Refresh struct {
+type RefreshToken struct {
 	Token string `json:"refresh"`
 }

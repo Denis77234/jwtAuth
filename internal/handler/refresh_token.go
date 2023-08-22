@@ -28,7 +28,7 @@ func RefreshToken(tk *service.TokenManager, allowedMethods ...string) http.Handl
 			return
 		}
 
-		var refreshFromUser model.Refresh
+		var refreshFromUser model.RefreshToken
 
 		err := json.NewDecoder(r.Body).Decode(&refreshFromUser)
 		if err != nil {
@@ -41,22 +41,27 @@ func RefreshToken(tk *service.TokenManager, allowedMethods ...string) http.Handl
 			return
 		}
 
-		tokensJson, err := tk.RefreshTokens(r.Context(), accessFromUser, refreshFromUser.Token)
+		access, refresh, err := tk.RefreshTokens(r.Context(), accessFromUser, refreshFromUser.Token)
 		if err != nil {
-			if oneOfErrors(err, mongo.ErrNoDocuments, service.ErrInvalidToken, service.ErrCantValidate, service.ErrInvalidFormat) {
+			if oneOfErrors(err, mongo.ErrNoDocuments, service.ErrInvalidToken, service.ErrInvalidFormat) {
 				http.Error(w, "invalid token", http.StatusBadRequest)
-				return
 			} else if errors.Is(err, service.ErrExpiredToken) {
 				http.Error(w, "expired token", http.StatusBadRequest)
-				return
 			} else {
 				log.Printf("refresh tokens: %v\n", err)
 				http.Error(w, "something went wrong", http.StatusInternalServerError)
-				return
 			}
+			return
 		}
+
+		tokensJson, err := marshalTokens(access, refresh)
+		if err != nil {
+			log.Printf("marshal tokens error: %v\n", err)
+			http.Error(w, "something went wrong", http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "no-store")
 		_, err = w.Write(tokensJson)
 		if err != nil {
 			log.Printf("Writing response error: %v\n", err)

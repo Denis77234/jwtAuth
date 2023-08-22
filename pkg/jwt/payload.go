@@ -19,7 +19,7 @@ type Payload struct {
 func (b Payload) base64() (string, error) {
 	bytes, err := json.Marshal(b)
 	if err != nil {
-		return "", fmt.Errorf("marshal error: %w\n", err)
+		return "", fmt.Errorf("marshal error: %w", err)
 	}
 	b64Body := base64.RawURLEncoding.EncodeToString(bytes)
 

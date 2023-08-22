@@ -11,10 +11,16 @@ import (
 	"strings"
 )
 
+const (
+	HS512 = "HS512"
+	HS256 = "HS256"
+	HS1   = "HS1"
+)
+
 var algomap = map[string]func() hash.Hash{
-	"HS512": sha512.New,
-	"HS256": sha256.New,
-	"HS1":   sha1.New,
+	HS512: sha512.New,
+	HS256: sha256.New,
+	HS1:   sha1.New,
 }
 
 type Generator struct {
@@ -54,12 +60,12 @@ func (g Generator) Generate(p Payload) (string, error) {
 
 	hdr, err := h.base64()
 	if err != nil {
-		return "", fmt.Errorf("b64 header encoding error: %w\n", err)
+		return "", fmt.Errorf("b64 header encoding error: %w", err)
 	}
 
 	payload, err := p.base64()
 	if err != nil {
-		return "", fmt.Errorf("b64 payload encoding error: %w\n", err)
+		return "", fmt.Errorf("b64 payload encoding error: %w", err)
 	}
 
 	sign := g.makeSignature(hdr, payload)
