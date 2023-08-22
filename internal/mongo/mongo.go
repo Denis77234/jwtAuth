@@ -61,8 +61,8 @@ func (m *Mongo) Find(ctx context.Context, guid string, iat int64) (model.Token, 
 	return refresh, nil
 }
 
-func (m *Mongo) Delete(ctx context.Context, guid string) error {
-	_, err := m.coll.DeleteOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}})
+func (m *Mongo) Delete(ctx context.Context, guid string, iat int64) error {
+	_, err := m.coll.DeleteOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}, primitive.E{Key: "iat", Value: iat}})
 	if err != nil {
 		return fmt.Errorf("deleting error:%w", err)
 	}
@@ -70,8 +70,8 @@ func (m *Mongo) Delete(ctx context.Context, guid string) error {
 	return nil
 }
 
-func (m *Mongo) Update(ctx context.Context, guid string, upd model.Token) error {
-	_, err := m.coll.UpdateOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}}, bson.M{"$set": upd})
+func (m *Mongo) Update(ctx context.Context, guid string, iat int64, upd model.Token) error {
+	_, err := m.coll.UpdateOne(ctx, bson.D{primitive.E{Key: "guid", Value: guid}, primitive.E{Key: "iat", Value: iat}}, bson.M{"$set": upd})
 	if err != nil {
 		return fmt.Errorf("updating error:%w", err)
 	}

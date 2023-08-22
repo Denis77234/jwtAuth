@@ -50,7 +50,6 @@ func Start(ctx context.Context) {
 	<-ctx.Done()
 
 	timedCtxServ, cancel1 := context.WithTimeout(context.Background(), time.Second*15)
-
 	defer cancel1()
 
 	err = server.Shutdown(timedCtxServ)

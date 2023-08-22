@@ -22,8 +22,8 @@ var (
 type refreshStorage interface {
 	Add(ctx context.Context, token model.Token) error
 	Find(ctx context.Context, guid string, iat int64) (model.Token, error)
-	Delete(ctx context.Context, guid string) error
-	Update(ctx context.Context, guid string, upd model.Token) error
+	Delete(ctx context.Context, guid string, iat int64) error
+	Update(ctx context.Context, guid string, iat int64, upd model.Token) error
 }
 
 type TokenManager struct {
@@ -83,7 +83,7 @@ func (tm *TokenManager) RefreshTokens(ctx context.Context, access, refresh strin
 	err = tm.validateRefresh(refresh, refFromDB)
 	if err != nil {
 		if err == ErrExpiredToken {
-			err = tm.db.Delete(ctx, guid)
+			err = tm.db.Delete(ctx, guid, iat)
 			if err != nil {
 				return "", "", fmt.Errorf("can't delete expired refresh: %w", err)
 			}
@@ -104,7 +104,7 @@ func (tm *TokenManager) RefreshTokens(ctx context.Context, access, refresh strin
 		return "", "", fmt.Errorf("can't make refresh token: %w", err)
 	}
 
-	err = tm.db.Update(ctx, guid, refreshToken)
+	err = tm.db.Update(ctx, guid, iat, refreshToken)
 	if err != nil {
 		return "", "", fmt.Errorf("can't update token: %w", err)
 	}
